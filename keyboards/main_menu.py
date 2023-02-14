@@ -11,6 +11,6 @@ def get_menu_kb() -> ReplyKeyboardMarkup:
     return kb.as_markup(resize_keyboard=True)
 
 
-def get_exchange_kb() -> ReplyKeyboardMarkup:
-    row = [KeyboardButton(text=key) for key in exchanges]
+def get_exchange_kb(items: list[str]) -> ReplyKeyboardMarkup:
+    row = [KeyboardButton(text=item) for item in items]
     return ReplyKeyboardMarkup(keyboard=[row], resize_keyboard=True)

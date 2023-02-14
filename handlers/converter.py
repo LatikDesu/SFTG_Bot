@@ -18,6 +18,9 @@ class OrderExchange(StatesGroup):
     calculation = State()
 
 
+item_kb = list(exchanges.keys())
+
+
 # Показать доступные валюты
 @router.message(Command(commands=["values"]))
 @router.message(Text(text="Доступные валюты"))
@@ -33,22 +36,23 @@ async def cmd_values(message: Message):
 @router.message(Text(text="Конвертировать валюту"))
 async def cmd_convert(message: Message, state: FSMContext):
     text = 'Выберите базовую валюту:'
-    await message.answer(text, reply_markup=get_exchange_kb())
+    await message.answer(text, reply_markup=get_exchange_kb(item_kb))
     await state.set_state(OrderExchange.choosing_base_key)
 
 
 @router.message(OrderExchange.choosing_base_key, F.text.in_(exchanges.keys()))
 async def base_chosen(message: Message, state: FSMContext):
     await state.update_data(chosen_base=exchanges[message.text.lower()])
-    await message.answer("Теперь, выберите в какую валюту конвертировать:", reply_markup=get_exchange_kb())
+    item_kb.remove(message.text.lower())
+    await message.answer("Теперь, выберите в какую валюту конвертировать:", reply_markup=get_exchange_kb(item_kb))
     await state.set_state(OrderExchange.choosing_sym_key)
 
 
-# если валюта введена с клавиатуры
+# если валюта введена с клавиатуры и ее нет в списке
 @router.message(OrderExchange.choosing_base_key)
 async def base_chosen_incorrectly(message: Message):
     await message.answer(text="Я не знаю такой валюты.\n\n"
-                         "Пожалуйста, выберите одно из списка ниже:", reply_markup=get_exchange_kb())
+                         "Пожалуйста, выберите одно из списка ниже:", reply_markup=get_exchange_kb(item_kb))
 
 
 # выбор валюты в которую конвертировать
@@ -59,11 +63,11 @@ async def sym_chosen(message: Message, state: FSMContext):
     await state.set_state(OrderExchange.calculation)
 
 
-# если валюта введена с клавиатуры
+# если валюта введена с клавиатуры и ее нет в списке
 @router.message(OrderExchange.choosing_sym_key)
 async def sym_chosen_incorrectly(message: Message):
     await message.answer(text="Я не знаю такой валюты.\n\n"
-                         "Пожалуйста, выберите одно из списка ниже:", reply_markup=get_exchange_kb())
+                         "Пожалуйста, выберите одно из списка ниже:", reply_markup=get_exchange_kb(item_kb))
 
 
 # ввод количетсва валюты
@@ -75,7 +79,8 @@ async def exchange_calc(message: Message, state: FSMContext):
 
     amount = float(message.text)
     answer = r['rates'][user_data['chosen_sym']]*amount
-
+    item_kb.clear()
+    item_kb.extend(list(exchanges.keys()))
     await message.answer(f"Цена {amount} {user_data['chosen_base']} в {user_data['chosen_sym']} = {answer}", reply_markup=get_menu_kb())
     await state.clear()
 
